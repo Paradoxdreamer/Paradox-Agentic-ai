@@ -1,0 +1,43 @@
+[
+  {
+    "id": "claude",
+    "name": "Claude Proxy (omegatech)",
+    "description": "Third-party proxy, unofficial. General-purpose default for writing and code.",
+    "kind": "http_get",
+    "base_url": "https://omegatech-api.dixonomega.tech/api/ai",
+    "path": "/Claude",
+    "message_param": "text",
+    "supports_streaming": false,
+    "supports_images": false,
+    "max_retries": 2,
+    "timeout": 60
+  },
+  {
+    "id": "gpt4mini",
+    "name": "GPT-4-mini (omegatech)",
+    "description": "Third-party proxy, unofficial. Supports images and its own sessions.",
+    "kind": "http_get",
+    "base_url": "https://omegatech-api.dixonomega.tech/api/ai",
+    "path": "/Gpt-4-mini",
+    "message_param": "message",
+    "session_param": "session",
+    "image_param": "image",
+    "supports_streaming": false,
+    "supports_images": true,
+    "max_retries": 2,
+    "timeout": 60
+  },
+  {
+    "id": "glm",
+    "name": "GLM-5.2 (NVIDIA NIM)",
+    "description": "Fast, streams responses. Good default for general chat and planning.",
+    "kind": "openai_compatible",
+    "base_url": "https://integrate.api.nvidia.com/v1",
+    "model": "z-ai/glm-5.2",
+    "api_key_env": "NVIDIA_API_KEY",
+    "supports_streaming": true,
+    "supports_images": false,
+    "max_retries": 2,
+    "timeout": 60
+  }
+]

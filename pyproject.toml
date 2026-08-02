@@ -1,0 +1,8 @@
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+# Pyflakes (unused imports/vars, undefined names) + syntax errors only.
+# Deliberately not enabling style rules (E/W beyond syntax) so CI catches
+# real bugs without turning into a formatting gate.
+select = ["F", "E9"]

@@ -1,0 +1,19 @@
+services:
+  paradox-ai:
+    build: .
+    container_name: paradox-ai
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Persist generated files, provider config, and accounts DB across
+      # container rebuilds/restarts. providers.json must exist on the
+      # host before first run (it ships in the repo) or Docker will
+      # create it as a directory instead of mounting the file. paradox.db
+      # only matters if PARADOX_AUTH_MODE=accounts; touch an empty file
+      # first if it doesn't exist yet, for the same reason.
+      - ./workspace:/app/workspace
+      - ./providers.json:/app/providers.json
+      - ./paradox.db:/app/paradox.db
+    restart: unless-stopped
