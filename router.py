@@ -47,7 +47,12 @@ def route(message: str, has_image: bool = False, router_provider_id: str = "glm"
         return classifier_id
 
     reply = (reply or "").strip().lower()
+    token = reply.split()[0].strip(".,:;`\"'") if reply else ""
     for p in all_providers:
-        if p["id"].lower() in reply:
+        if p["id"].lower() == token:
+            return p["id"]
+    for p in sorted(all_providers, key=lambda x: -len(x["id"])):
+        pid = p["id"].lower()
+        if pid and pid in reply:
             return p["id"]
     return classifier_id
