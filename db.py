@@ -55,8 +55,11 @@ CREATE TABLE IF NOT EXISTS usage_log (
 
 @contextmanager
 def _conn():
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), timeout=15)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=15000")
+    conn.execute("PRAGMA foreign_keys=ON")
     try:
         yield conn
         conn.commit()
@@ -69,7 +72,7 @@ def _ensure_schema() -> None:
         conn.executescript(SCHEMA)
 
 
-_ensure_schema()  # cheap + idempotent; runs once when this module is first imported
+_ensure_schema()
 
 
 def _row(row) -> Optional[dict]:
@@ -133,7 +136,6 @@ def set_api_key(user_id: str, new_key: str) -> None:
 
 
 def record_failed_login(email: str, lock_after: int = 5, lock_minutes: int = 15) -> None:
-    """Bumps the failed-login counter and locks the account temporarily past the threshold."""
     with _conn() as conn:
         row = conn.execute(
             "SELECT failed_login_count FROM users WHERE email = ?", (email.lower(),)
@@ -195,3 +197,21 @@ def log_usage(user_id: str, kind: str, cost: int) -> None:
 def list_users() -> list[dict]:
     with _conn() as conn:
         return [_row(r) for r in conn.execute("SELECT * FROM users ORDER BY created_at").fetchall()]
+
+
+def debit_if_enough(user_id: str, amount: int) -> tuple[bool, int]:
+    """Atomically debit `amount` if the user has enough (or unlimited).
+    Returns (ok, remaining_or_current)."""
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT credits, unlimited_credits FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            return True, 0
+        if row["unlimited_credits"]:
+            return True, row["credits"]
+        if row["credits"] < amount:
+            return False, row["credits"]
+        conn.execute("UPDATE users SET credits = credits - ? WHERE id = ?", (amount, user_id))
+        return True, row["credits"] - amount
