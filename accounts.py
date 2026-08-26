@@ -4,24 +4,13 @@ Paradox AI - accounts
 Signup/login business logic: email+password and Google OAuth, both backed
 by db.py. Only reachable when PARADOX_AUTH_MODE=accounts (server.py's
 routes 404 otherwise).
-
-Password storage: PBKDF2-HMAC-SHA256 with a random per-user salt (stdlib
-hashlib + secrets, no extra dependency). This is a reasonable, well-vetted
-standard -- not bcrypt/argon2, which are more purpose-built for password
-hashing specifically. Swap in passlib+bcrypt if you want that and don't
-mind the extra dependency.
-
-Google OAuth: a manual, minimal implementation of the standard
-authorization-code flow using `requests` (no authlib dependency). After
-exchanging the code for an access token, the user's identity is fetched by
-calling Google's own userinfo endpoint over TLS with that token -- this is
-a common simplified pattern for small apps and doesn't require verifying
-an id_token's JWT signature yourself.
 """
 from __future__ import annotations
 
 import hashlib
+import hmac
 import secrets
+import time
 from typing import Optional
 from urllib.parse import urlencode
 
@@ -54,8 +43,6 @@ def _new_api_key() -> str:
 def _is_creator_email(email: str) -> bool:
     return email.lower() in [e.lower() for e in config.CREATOR_EMAILS]
 
-
-# ---------- email + password ----------
 
 def signup_email(email: str, password: str, accepted_terms: bool) -> dict:
     if not email or "@" not in email:
@@ -93,8 +80,6 @@ def login_email(email: str, password: str) -> dict:
     db.reset_failed_login(email)
     return user
 
-
-# ---------- Google OAuth ----------
 
 def google_login_url(redirect_uri: str, state: str) -> str:
     if not config.GOOGLE_CLIENT_ID:
@@ -159,11 +144,9 @@ def google_callback(code: str, redirect_uri: str) -> dict:
         display_name=info.get("name"),
         is_creator=_is_creator_email(email),
         starting_credits=config.STARTING_CREDITS,
-        accepted_terms=True,  # implied by clicking through; UI shows the notice above the button
+        accepted_terms=True,
     )
 
-
-# ---------- shared ----------
 
 def rotate_key(user_id: str) -> str:
     new_key = _new_api_key()
@@ -181,3 +164,29 @@ def public_view(user: dict) -> dict:
         "credits": user["credits"],
         "api_key": user["api_key"],
     }
+
+
+def _oauth_secret() -> bytes:
+    return (config.GOOGLE_CLIENT_SECRET or config.OWNER_KEY or "paradox-oauth-dev").encode()
+
+
+def make_oauth_state() -> str:
+    nonce = secrets.token_urlsafe(16)
+    ts = str(int(time.time()))
+    raw = f"{ts}.{nonce}"
+    sig = hmac.new(_oauth_secret(), raw.encode(), hashlib.sha256).hexdigest()
+    return f"{raw}.{sig}"
+
+
+def check_oauth_state(state: Optional[str], max_age: int = 600) -> bool:
+    if not state or state.count(".") < 2:
+        return False
+    ts, nonce, sig = state.split(".", 2)
+    raw = f"{ts}.{nonce}"
+    expect = hmac.new(_oauth_secret(), raw.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expect, sig):
+        return False
+    try:
+        return abs(time.time() - int(ts)) <= max_age
+    except ValueError:
+        return False
