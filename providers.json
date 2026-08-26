@@ -10,7 +10,8 @@
     "supports_streaming": false,
     "supports_images": false,
     "max_retries": 2,
-    "timeout": 60
+    "timeout": 60,
+    "platform": "omegatech"
   },
   {
     "id": "gpt4mini",
@@ -25,7 +26,8 @@
     "supports_streaming": false,
     "supports_images": true,
     "max_retries": 2,
-    "timeout": 60
+    "timeout": 60,
+    "platform": "omegatech"
   },
   {
     "id": "glm",
@@ -38,6 +40,7 @@
     "supports_streaming": true,
     "supports_images": false,
     "max_retries": 2,
-    "timeout": 60
+    "timeout": 60,
+    "platform": "nvidia"
   }
 ]

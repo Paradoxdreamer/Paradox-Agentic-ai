@@ -1,7 +1,4 @@
-# fly.toml app configuration file generated for paradox-agentic-ai on 2026-08-02T16:24:25Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# fly.toml app configuration for paradox-agentic-ai
 
 app = 'paradox-agentic-ai'
 primary_region = 'ams'
@@ -9,7 +6,7 @@ primary_region = 'ams'
 [build]
 
 [http_service]
-  internal_port = 8080
+  internal_port = 8000
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
@@ -20,4 +17,3 @@ primary_region = 'ams'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256
