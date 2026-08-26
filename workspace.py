@@ -45,7 +45,7 @@ def safe_path(relative: str, user_id: str = "default") -> Path:
     return candidate
 
 
-_safe_path = safe_path  # backwards-compat alias for earlier single-tenant code
+_safe_path = safe_path
 
 
 def list_files(user_id: str = "default") -> List[str]:
@@ -76,22 +76,45 @@ def delete_file(relative: str, user_id: str = "default") -> None:
         path.unlink()
 
 
+MAX_ZIP_FILES = 80
+MAX_ZIP_MEMBER = 8 * 1024 * 1024
+MAX_ZIP_TOTAL = 40 * 1024 * 1024
+
+
 def import_zip(zip_bytes: bytes, subfolder: str = "", user_id: str = "default") -> List[str]:
+    if len(zip_bytes) > MAX_ZIP_TOTAL:
+        raise WorkspaceError("zip is too large")
     root = user_root(user_id)
     target_root = safe_path(subfolder, user_id) if subfolder else root
     target_root.mkdir(parents=True, exist_ok=True)
     extracted = []
+    total = 0
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-        for member in zf.namelist():
+        names = zf.namelist()
+        if len(names) > MAX_ZIP_FILES:
+            raise WorkspaceError(f"zip has too many entries (max {MAX_ZIP_FILES})")
+        for member in names:
             dest = (target_root / member).resolve()
             if target_root.resolve() not in dest.parents and dest != target_root.resolve():
-                continue  # zip-slip guard
+                continue
             if member.endswith("/"):
                 dest.mkdir(parents=True, exist_ok=True)
                 continue
+            info = zf.getinfo(member)
+            if info.file_size > MAX_ZIP_MEMBER:
+                raise WorkspaceError(f"zip member '{member}' is too large")
+            total += info.file_size
+            if total > MAX_ZIP_TOTAL:
+                raise WorkspaceError("uncompressed zip contents exceed the size limit")
             dest.parent.mkdir(parents=True, exist_ok=True)
             with zf.open(member) as src, open(dest, "wb") as out:
-                out.write(src.read())
+                remaining = info.file_size
+                while remaining > 0:
+                    chunk = src.read(min(65536, remaining))
+                    if not chunk:
+                        break
+                    out.write(chunk)
+                    remaining -= len(chunk)
             extracted.append(str(dest.relative_to(root)))
     return extracted
 
@@ -108,7 +131,6 @@ def export_zip(user_id: str = "default") -> bytes:
 
 
 def clear(user_id: str = "default") -> None:
-    """Remove all files except snapshots (used by rollback before restoring one)."""
     root = user_root(user_id)
     for p in root.iterdir():
         if p.name == ".snapshots":
