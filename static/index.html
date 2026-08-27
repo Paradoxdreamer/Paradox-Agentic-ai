@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Paradox AI</title>
+<title>Paradox Tech — Agentic AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
@@ -16,49 +16,119 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
 <style>
-:root{--ink:#0B0B0E;--panel:#131318;--panel-2:#1A1A21;--line:#2A2A32;--text:#E8E6E1;--text-dim:#8B8A93;--mint:#7CFFCB;--ember:#FF6B4A;}
-*{box-sizing:border-box;}html,body{height:100%;}
-body{margin:0;background:var(--ink);color:var(--text);font-family:'IBM Plex Sans',sans-serif;overflow-x:hidden;}
-.topbar{display:flex;justify-content:flex-end;padding:8px 16px;border-bottom:1px solid var(--line);gap:8px;align-items:center;min-height:36px;}
-.topbar input{background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 10px;width:200px;}
-.topbar label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);}
-.account-badge{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);}
-.agents-strip{display:flex;justify-content:center;align-items:center;gap:10px;padding:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
-.agent-node{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;}
-.agent-node.active{border-color:var(--mint);}
-.agent-node .sub{display:block;font-size:10px;color:var(--text-dim);}
-.connection-bar{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-dim);padding:8px 16px 0;}
-.connection-bar .unofficial{color:var(--ember);}
-.owner-box{display:flex;gap:8px;align-items:center;}
-.tabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--panel);}
-.tab{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:12px 16px;color:var(--text-dim);cursor:pointer;}
-.tab.active{color:var(--mint);border-bottom:2px solid var(--mint);}
-.console{display:grid;grid-template-columns:240px 1fr;min-height:460px;}
-.workspace-panel{border-right:1px solid var(--line);padding:16px;background:var(--panel);}
-.view{display:none;flex-direction:column;height:100%;}.view.active{display:flex;}
-.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;}
-.msg{max-width:80%;padding:12px 14px;border-radius:10px;font-size:14px;white-space:pre-wrap;}
-.msg.user{align-self:flex-end;background:var(--panel-2);border:1px solid var(--line);}
-.msg.agent{align-self:flex-start;border:1px solid rgba(124,255,203,0.25);}
-.composer{display:flex;gap:8px;padding:14px;border-top:1px solid var(--line);}
-.composer textarea{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:12px;height:52px;}
-.send-btn{font-family:'Space Grotesk',sans-serif;font-weight:600;padding:0 22px;height:52px;border:none;background:var(--mint);color:var(--ink);cursor:pointer;}
-.ws-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 10px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--text-dim);cursor:pointer;}
-.add-provider-btn{padding:8px 14px;border:1px dashed var(--line);border-radius:999px;background:transparent;color:var(--text-dim);cursor:pointer;}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;align-items:center;justify-content:center;padding:20px;}
-.modal-overlay.open{display:flex;}
-.modal{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;}
-.modal input,.modal select,.modal textarea{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;color:var(--text);padding:8px 10px;}
-.kind-only{display:none;}.kind-only.show{display:block;}
-.modal-err{color:var(--ember);display:none;}
-a{color:var(--mint);}
+:root{
+  --navy:#0A2540; --navy-2:#071A2E; --ink:#061525;
+  --panel:#0E2A46; --panel-2:#123552;
+  --line:rgba(0,212,200,0.18);
+  --text:#E8F4F3; --text-dim:#7AA0B0;
+  --teal:#00D4C8; --teal-2:#7CFFCB; --ember:#FF6B4A;
+}
+*{box-sizing:border-box;} html,body{height:100%;}
+body{
+  margin:0; color:var(--text); font-family:'IBM Plex Sans',sans-serif; overflow-x:hidden;
+  background:
+    radial-gradient(1200px 500px at 50% -80px, rgba(0,212,200,0.14), transparent 60%),
+    linear-gradient(180deg, var(--navy-2), var(--ink) 40%);
+}
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes pulse-glow {
+  0%,100% { text-shadow: 0 0 12px rgba(0,212,200,.35); }
+  50% { text-shadow: 0 0 28px rgba(0,212,200,.7), 0 0 60px rgba(0,212,200,.25); }
+}
+@keyframes seam {
+  0%,100%{opacity:.45} 45%{opacity:1} 52%{opacity:.2} 60%{opacity:1}
+}
+.ticker{
+  overflow:hidden; border-bottom:1px solid var(--line);
+  background:rgba(10,37,64,.85); backdrop-filter:blur(8px);
+}
+.ticker-track{
+  display:flex; width:max-content; animation:ticker 28s linear infinite;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--teal); white-space:nowrap; padding:8px 0;
+}
+.ticker-track span{ padding:0 28px; }
+.ticker-track b{ color:#fff; font-weight:600; }
+@media (prefers-reduced-motion:reduce){
+  .ticker-track{ animation:none; }
+}
+.topbar{ display:flex; justify-content:flex-end; padding:8px 16px; border-bottom:1px solid var(--line); gap:8px; align-items:center; min-height:36px; }
+.topbar input{ background:var(--panel); border:1px solid var(--line); border-radius:6px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:11px; padding:6px 10px; width:200px; }
+.topbar label{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); }
+.account-badge{ display:flex; align-items:center; gap:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); }
+.brand{
+  position:relative; text-align:center; padding:36px 20px 28px;
+  border-bottom:1px solid var(--line); overflow:hidden;
+}
+.brand .seam{
+  position:absolute; left:50%; top:0; bottom:0; width:1px;
+  background:linear-gradient(180deg, transparent, var(--teal), transparent);
+  box-shadow:0 0 18px var(--teal); animation:seam 6s ease-in-out infinite;
+}
+.eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--text-dim); margin-bottom:10px; position:relative; }
+.wordmark{
+  font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:clamp(32px,6vw,56px);
+  margin:0; letter-spacing:-.03em; position:relative; animation:pulse-glow 4.5s ease-in-out infinite;
+}
+.wordmark .dox{ color:var(--teal); }
+.house{ font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.4em; text-transform:uppercase; color:var(--teal); margin:10px 0 0; position:relative; }
+.tagline{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-dim); max-width:560px; margin:12px auto 0; line-height:1.7; position:relative; }
+.tagline em{ color:var(--teal); font-style:normal; }
+.agents-strip{ display:flex; justify-content:center; align-items:center; gap:10px; padding:14px; flex-wrap:wrap; border-bottom:1px solid var(--line); }
+.agent-node{ display:flex; align-items:center; gap:8px; padding:8px 14px; border:1px solid var(--line); border-radius:999px; background:var(--panel); font-family:'IBM Plex Mono',monospace; font-size:12px; cursor:pointer; }
+.agent-node.active{ border-color:var(--teal); box-shadow:0 0 0 1px rgba(0,212,200,.25); }
+.agent-node .sub{ display:block; font-size:10px; color:var(--text-dim); }
+.connection-bar{ text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-dim); padding:8px 16px 0; }
+.connection-bar .unofficial{ color:var(--ember); }
+.owner-box{ display:flex; gap:8px; align-items:center; }
+.tabs{ display:flex; gap:2px; padding:0 16px; border-bottom:1px solid var(--line); background:rgba(14,42,70,.7); }
+.tab{ font-family:'IBM Plex Mono',monospace; font-size:12px; padding:12px 16px; color:var(--text-dim); cursor:pointer; }
+.tab.active{ color:var(--teal); border-bottom:2px solid var(--teal); }
+.console{ display:grid; grid-template-columns:240px 1fr; min-height:460px; }
+.workspace-panel{ border-right:1px solid var(--line); padding:16px; background:rgba(14,42,70,.55); }
+.view{ display:none; flex-direction:column; height:100%; } .view.active{ display:flex; }
+.messages{ flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:14px; }
+.msg{ max-width:80%; padding:12px 14px; border-radius:10px; font-size:14px; white-space:pre-wrap; }
+.msg.user{ align-self:flex-end; background:var(--panel-2); border:1px solid var(--line); }
+.msg.agent{ align-self:flex-start; border:1px solid rgba(0,212,200,.28); }
+.composer{ display:flex; gap:8px; padding:14px; border-top:1px solid var(--line); }
+.composer textarea{ flex:1; background:var(--panel); border:1px solid var(--line); border-radius:8px; color:var(--text); padding:12px; height:52px; }
+.send-btn{ font-family:'Space Grotesk',sans-serif; font-weight:600; padding:0 22px; height:52px; border:none; background:var(--teal); color:var(--navy); cursor:pointer; }
+.ws-btn{ font-family:'IBM Plex Mono',monospace; font-size:11px; padding:6px 10px; border-radius:5px; border:1px solid var(--line); background:transparent; color:var(--text-dim); cursor:pointer; }
+.add-provider-btn{ padding:8px 14px; border:1px dashed var(--line); border-radius:999px; background:transparent; color:var(--text-dim); cursor:pointer; }
+.modal-overlay{ display:none; position:fixed; inset:0; background:rgba(6,21,37,.72); z-index:50; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.open{ display:flex; }
+.modal{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:22px; width:100%; max-width:480px; max-height:88vh; overflow-y:auto; }
+.modal input,.modal select,.modal textarea{ width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); padding:8px 10px; }
+.kind-only{ display:none; } .kind-only.show{ display:block; }
+.modal-err{ color:var(--ember); display:none; }
+a{ color:var(--teal); }
+.site-footer{ display:flex; justify-content:center; gap:10px; padding:16px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); border-top:1px solid var(--line); }
 </style>
 </head>
 <body>
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span><b>PARADOX TECH</b> · agentic console</span>
+    <span>plug any model · one workspace</span>
+    <span>owner-gated registry</span>
+    <span>from darkness · digital innovations</span>
+    <span><b>PARADOX TECH</b> · agentic console</span>
+    <span>plug any model · one workspace</span>
+    <span>owner-gated registry</span>
+    <span>from darkness · digital innovations</span>
+  </div>
+</div>
 <div class="topbar" id="topbar"><div id="accountArea"></div></div>
-<header class="seam-wrap" style="text-align:center;padding:32px 16px;border-bottom:1px solid var(--line);">
-<div class="eyebrow" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);">plug in any AI backend / one workspace</div>
-<h1 class="wordmark" style="font-family:'Space Grotesk',sans-serif;">Para<span style="color:var(--mint)">dox</span> AI</h1>
+<header class="brand">
+  <div class="seam"></div>
+  <div class="eyebrow">multi-model agentic platform</div>
+  <h1 class="wordmark">Para<span class="dox">dox</span> AI</h1>
+  <p class="house">Paradox Tech</p>
+  <p class="tagline">Allen once said: <em>from the deepest depth of darkness comes digital innovations.</em></p>
 </header>
 <nav class="agents-strip" id="agentStrip"></nav>
 <div class="connection-bar" id="connectionBar">pick a provider to see how it connects</div>
@@ -79,7 +149,7 @@ a{color:var(--mint);}
 </aside>
 <section>
 <div class="view active" id="view-chat">
-<div class="messages" id="messages"><div class="msg agent">Pick a provider. Owner can add models.</div></div>
+<div class="messages" id="messages"><div class="msg agent">Paradox Tech is online. Pick a provider. Owner can add models.</div></div>
 <div class="composer"><form id="composer" style="display:flex;width:100%;gap:8px;"><textarea id="input" placeholder="Describe the app, site, or task..." required></textarea><button class="send-btn" id="sendBtn">Send</button></form></div>
 <div class="mem-row"><span id="memStatus">session: none yet</span><button id="forgetBtn">forget</button></div>
 </div>
@@ -121,5 +191,6 @@ a{color:var(--mint);}
 <div class="modal-err" id="authModalErr"></div>
 <button type="button" id="authCancelBtn">cancel</button>
 <button type="submit" id="authSubmitBtn">Log in</button></form></div></div>
+<footer class="site-footer">Paradox Tech · Agentic AI</footer>
 <script src="/static/app.js"></script>
 </body></html>
