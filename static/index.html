@@ -1,2 +1,125 @@
 <!DOCTYPE html>
-<!-- see artifacts; loaded from disk in next attempt if this is too large -->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paradox AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<style>
+:root{--ink:#0B0B0E;--panel:#131318;--panel-2:#1A1A21;--line:#2A2A32;--text:#E8E6E1;--text-dim:#8B8A93;--mint:#7CFFCB;--ember:#FF6B4A;}
+*{box-sizing:border-box;}html,body{height:100%;}
+body{margin:0;background:var(--ink);color:var(--text);font-family:'IBM Plex Sans',sans-serif;overflow-x:hidden;}
+.topbar{display:flex;justify-content:flex-end;padding:8px 16px;border-bottom:1px solid var(--line);gap:8px;align-items:center;min-height:36px;}
+.topbar input{background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 10px;width:200px;}
+.topbar label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);}
+.account-badge{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);}
+.agents-strip{display:flex;justify-content:center;align-items:center;gap:10px;padding:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+.agent-node{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;}
+.agent-node.active{border-color:var(--mint);}
+.agent-node .sub{display:block;font-size:10px;color:var(--text-dim);}
+.connection-bar{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-dim);padding:8px 16px 0;}
+.connection-bar .unofficial{color:var(--ember);}
+.owner-box{display:flex;gap:8px;align-items:center;}
+.tabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--panel);}
+.tab{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:12px 16px;color:var(--text-dim);cursor:pointer;}
+.tab.active{color:var(--mint);border-bottom:2px solid var(--mint);}
+.console{display:grid;grid-template-columns:240px 1fr;min-height:460px;}
+.workspace-panel{border-right:1px solid var(--line);padding:16px;background:var(--panel);}
+.view{display:none;flex-direction:column;height:100%;}.view.active{display:flex;}
+.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;}
+.msg{max-width:80%;padding:12px 14px;border-radius:10px;font-size:14px;white-space:pre-wrap;}
+.msg.user{align-self:flex-end;background:var(--panel-2);border:1px solid var(--line);}
+.msg.agent{align-self:flex-start;border:1px solid rgba(124,255,203,0.25);}
+.composer{display:flex;gap:8px;padding:14px;border-top:1px solid var(--line);}
+.composer textarea{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:12px;height:52px;}
+.send-btn{font-family:'Space Grotesk',sans-serif;font-weight:600;padding:0 22px;height:52px;border:none;background:var(--mint);color:var(--ink);cursor:pointer;}
+.ws-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 10px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--text-dim);cursor:pointer;}
+.add-provider-btn{padding:8px 14px;border:1px dashed var(--line);border-radius:999px;background:transparent;color:var(--text-dim);cursor:pointer;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;}
+.modal input,.modal select,.modal textarea{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;color:var(--text);padding:8px 10px;}
+.kind-only{display:none;}.kind-only.show{display:block;}
+.modal-err{color:var(--ember);display:none;}
+a{color:var(--mint);}
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"><div id="accountArea"></div></div>
+<header class="seam-wrap" style="text-align:center;padding:32px 16px;border-bottom:1px solid var(--line);">
+<div class="eyebrow" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);">plug in any AI backend / one workspace</div>
+<h1 class="wordmark" style="font-family:'Space Grotesk',sans-serif;">Para<span style="color:var(--mint)">dox</span> AI</h1>
+</header>
+<nav class="agents-strip" id="agentStrip"></nav>
+<div class="connection-bar" id="connectionBar">pick a provider to see how it connects</div>
+<div class="tabs" id="tabs">
+<div class="tab active" data-view="chat">Chat</div>
+<div class="tab" data-view="editor">Editor</div>
+<div class="tab" data-view="preview">Preview</div>
+<div class="tab" data-view="pipeline">Pipeline</div>
+<div class="tab" data-view="run">Run</div>
+</div>
+<main class="console">
+<aside class="workspace-panel">
+<div class="panel-title">workspace</div>
+<div><button class="ws-btn" id="refreshBtn">refresh</button> <button class="ws-btn" id="uploadBtn">import zip</button> <button class="ws-btn" id="exportBtn">export zip</button><input type="file" id="zipInput" accept=".zip" style="display:none" /></div>
+<div id="fileList"></div>
+<div id="snapList"></div>
+<button class="ws-btn" id="snapBtn">checkpoint now</button>
+</aside>
+<section>
+<div class="view active" id="view-chat">
+<div class="messages" id="messages"><div class="msg agent">Pick a provider. Owner can add models.</div></div>
+<div class="composer"><form id="composer" style="display:flex;width:100%;gap:8px;"><textarea id="input" placeholder="Describe the app, site, or task..." required></textarea><button class="send-btn" id="sendBtn">Send</button></form></div>
+<div class="mem-row"><span id="memStatus">session: none yet</span><button id="forgetBtn">forget</button></div>
+</div>
+<div class="view" id="view-editor"><div id="editorPath">no file open</div><textarea id="editorArea"></textarea><button class="ws-btn" id="saveBtn">save</button></div>
+<div class="view" id="view-preview"><input id="previewPath" value="index.html" /><button class="ws-btn" id="previewGoBtn">open</button><button class="ws-btn" id="previewReloadBtn">reload</button><iframe id="previewFrame" class="preview-frame" style="width:100%;min-height:360px;border:0;background:#fff;"></iframe></div>
+<div class="view" id="view-pipeline"><div id="pipelineRoles"></div><div id="pipelineBody"></div><form id="pipelineForm"><input id="pipelineInput" placeholder="build task" required /><button class="send-btn" id="pipelineBtn">Run</button></form></div>
+<div class="view" id="view-run"><input id="runCommand" placeholder="command" /><input id="runFile" placeholder="file to auto-fix" /><button class="ws-btn" id="runBtn">run once</button><button class="ws-btn" id="autofixBtn">run + auto-fix</button><div id="runOutput"></div></div>
+</section>
+</main>
+<div class="modal-overlay" id="providerModalOverlay"><div class="modal">
+<h2>Add a model / connection</h2>
+<div class="modal-sub">Owner only. Omegatech uses HTTP GET at https://omegatech-api.dixonomega.tech/api/ai plus a path like /Claude.</div>
+<form id="providerForm">
+<label>Platform preset</label>
+<select id="pf_preset"><option value="custom">Custom</option><option value="omegatech">Omegatech HTTP GET</option><option value="nvidia">NVIDIA NIM</option><option value="openai">OpenAI</option><option value="groq">Groq</option></select>
+<label>Id *</label><input id="pf_id" required />
+<label>Display name</label><input id="pf_name" />
+<label>Connection kind *</label>
+<select id="pf_kind"><option value="openai_compatible">openai_compatible</option><option value="http_get">http_get</option></select>
+<label>Base URL *</label><input id="pf_base_url" required />
+<div class="kind-only" id="kind_openai"><label>Model</label><input id="pf_model" /></div>
+<div class="kind-only" id="kind_http"><label>Path</label><input id="pf_path" placeholder="/Claude" /><label>Message param</label><input id="pf_message_param" placeholder="text" /><label>Session param</label><input id="pf_session_param" /><label>Image param</label><input id="pf_image_param" /></div>
+<label>API key</label><input id="pf_api_key" />
+<label>API key env var</label><input id="pf_api_key_env" />
+<label>Description</label><textarea id="pf_description"></textarea>
+<label><input type="checkbox" id="pf_streaming" /> streaming</label>
+<label><input type="checkbox" id="pf_images" /> images</label>
+<div class="modal-err" id="providerModalErr"></div>
+<button type="button" class="ws-btn" id="providerCancelBtn">cancel</button>
+<button type="submit" class="send-btn" id="providerSaveBtn">Add provider</button>
+</form></div></div>
+<div class="modal-overlay" id="authModalOverlay"><div class="modal">
+<h2 id="authModalTitle">Sign in</h2>
+<div class="auth-tab" id="authTabLogin">Log in</div>
+<div class="auth-tab" id="authTabSignup">Sign up</div>
+<div id="googleLoginBlock" style="display:none"><button type="button" id="googleLoginBtn">Continue with Google</button></div>
+<form id="authForm"><input id="auth_email" type="email" required /><input id="auth_password" type="password" required minlength="8" />
+<div id="signupTermsRow" style="display:none"><input type="checkbox" id="auth_accept_terms" /> I agree to Terms and Privacy</div>
+<div class="modal-err" id="authModalErr"></div>
+<button type="button" id="authCancelBtn">cancel</button>
+<button type="submit" id="authSubmitBtn">Log in</button></form></div></div>
+<script src="/static/app.js"></script>
+</body></html>
