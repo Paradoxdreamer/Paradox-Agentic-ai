@@ -1,6 +1,6 @@
 <div align="center">
 
-# Paradox AI
+# Paradox Agentic AI
 
 **Paradox Tech** · multi-model agentic console
 
@@ -21,13 +21,13 @@ Plug in **Omegatech HTTP GET**, **NVIDIA NIM**, **OpenAI**, **Groq**, or any hos
 ## What it is
 
 | Surface | What it does |
-|---|---|
-| Chat | Stream against one provider, auto-route, or consensus |
-| Workspace | Sandboxed files, zip import/export, snapshots |
-| Pipeline | Architect → coder → reviewer into the workspace |
-| Registry | Owner adds a model by **name** + URL. Everyone else can use it |
+|---------|--------------|
+| **Chat** | Stream against one provider, auto-route, or consensus |
+| **Workspace** | Sandboxed files, zip import/export, snapshots |
+| **Pipeline** | Architect → coder → reviewer into the workspace |
+| **Registry** | Owner adds a model by **name** + URL. Everyone else can use it |
 
-House colors in the UI: navy `#0A2540`, teal `#00D4C8`. Looping **PARADOX TECH** ticker on the console.
+House colors: navy `#0A2540`, teal `#00D4C8`. Looping **PARADOX TECH** ticker on the console.
 
 ## Become owner, then add APIs
 
@@ -47,7 +47,7 @@ Restart. Paste the owner key in the UI. **+ add model** → preset (Omegatech / 
 Example Omegatech:
 
 - Base `https://omegatech-api.dixonomega.tech/api/ai`
-- Path `/Claude` or whatever new route they ship
+- Path `/Claude` (or whatever new route they ship)
 - Kind `http_get`
 
 Full walkthrough: [docs/OWNER.md](docs/OWNER.md)
@@ -98,8 +98,7 @@ docs/OWNER.md   Add a model without touching code
 
 <div align="center">
 
-**Paradox Tech**
-
-Allen once said: from the deepest depth of darkness comes digital innovations.
+**Paradox Tech**  
+*From the deepest depth of darkness comes digital innovations.*
 
 </div>
