@@ -26,8 +26,12 @@ OMEGA_BASE_URL = os.getenv("OMEGA_BASE_URL", "https://omegatech-api.dixonomega.t
 OMEGA_CLAUDE_PATH = os.getenv("OMEGA_CLAUDE_PATH", "/Claude")
 OMEGA_GPT4MINI_PATH = os.getenv("OMEGA_GPT4MINI_PATH", "/Gpt-4-mini")
 
-WORKSPACE_DIR = Path(os.getenv("PARADOX_WORKSPACE", str(Path(__file__).parent / "workspace")))
+_BASE_DIR = Path(__file__).parent
+WORKSPACE_DIR = Path(os.getenv("PARADOX_WORKSPACE", str(_BASE_DIR / "workspace")))
 WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Configurable so Fly volumes (or any persistent mount) can hold the registry.
+PROVIDERS_FILE = Path(os.getenv("PARADOX_PROVIDERS_FILE", str(_BASE_DIR / "providers.json")))
 
 APP_NAME = "Paradox AI"
 APP_TAGLINE = "Allen once said: from the deepest depth of darkness comes digital innovations."
