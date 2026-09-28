@@ -10,7 +10,9 @@ from urllib.parse import urlparse
 
 import requests
 
-PROVIDERS_FILE = Path(__file__).parent / "providers.json"
+import config
+
+PROVIDERS_FILE = config.PROVIDERS_FILE
 _LOCK = threading.Lock()
 RESERVED_IDS = {"auto", "consensus"}
 _LIKELY_TEXT_KEYS = ("response", "reply", "message", "text", "result", "answer", "content", "output")
@@ -21,12 +23,15 @@ DEFAULT_PROVIDERS = [
     {"id": "glm", "name": "GLM-5.2 (NVIDIA NIM)", "description": "Fast, streams responses. Good default for general chat and planning.", "kind": "openai_compatible", "base_url": "https://integrate.api.nvidia.com/v1", "model": "z-ai/glm-5.2", "api_key_env": "NVIDIA_API_KEY", "supports_streaming": True, "supports_images": False, "max_retries": 2, "timeout": 60, "platform": "nvidia"},
 ]
 
+
 class ProviderError(RuntimeError):
     pass
+
 
 def _load() -> list[dict]:
     with _LOCK:
         if not PROVIDERS_FILE.exists():
+            PROVIDERS_FILE.parent.mkdir(parents=True, exist_ok=True)
             PROVIDERS_FILE.write_text(json.dumps(DEFAULT_PROVIDERS, indent=2))
             return list(DEFAULT_PROVIDERS)
         try:
@@ -34,21 +39,27 @@ def _load() -> list[dict]:
         except (json.JSONDecodeError, OSError) as e:
             raise ProviderError(f"providers.json is unreadable: {e}") from e
 
+
 def _save(providers_list: list[dict]) -> None:
     with _LOCK:
+        PROVIDERS_FILE.parent.mkdir(parents=True, exist_ok=True)
         PROVIDERS_FILE.write_text(json.dumps(providers_list, indent=2))
+
 
 def list_providers() -> list[dict]:
     return _load()
 
+
 def list_provider_ids() -> list[str]:
     return [p["id"] for p in _load()]
+
 
 def get_provider(provider_id: str) -> dict:
     for p in _load():
         if p["id"] == provider_id:
             return p
     raise ProviderError(f"unknown provider '{provider_id}'")
+
 
 def add_provider(cfg: dict) -> dict:
     providers_list = _load()
@@ -76,12 +87,14 @@ def add_provider(cfg: dict) -> dict:
     _save(providers_list)
     return cfg
 
+
 def remove_provider(provider_id: str) -> None:
     providers_list = _load()
     remaining = [p for p in providers_list if p["id"] != provider_id]
     if len(remaining) == len(providers_list):
         raise ProviderError(f"unknown provider '{provider_id}'")
     _save(remaining)
+
 
 def _guess_platform(cfg: dict) -> str:
     blob = " ".join([str(cfg.get("base_url") or ""), str(cfg.get("id") or ""), str(cfg.get("name") or ""), str(cfg.get("platform") or "")]).lower()
@@ -100,6 +113,7 @@ def _guess_platform(cfg: dict) -> str:
     if "localhost" in blob or "127.0.0.1" in blob:
         return "local"
     return (cfg.get("platform") or "custom").lower()
+
 
 def connection_info(cfg: dict) -> dict:
     kind = cfg.get("kind") or "unknown"
@@ -120,6 +134,7 @@ def connection_info(cfg: dict) -> dict:
         line += f" · path {cfg['path']}"
     return {"kind": kind, "kind_label": kind_label, "platform": platform, "host": host, "model": cfg.get("model"), "path": cfg.get("path"), "unofficial": unofficial, "summary": line}
 
+
 def redact(cfg: dict) -> dict:
     out = dict(cfg)
     if out.get("api_key"):
@@ -127,6 +142,7 @@ def redact(cfg: dict) -> dict:
     out["connection"] = connection_info(cfg)
     out.setdefault("platform", _guess_platform(cfg))
     return out
+
 
 def _extract_text(data) -> str:
     if isinstance(data, str):
@@ -147,6 +163,7 @@ def _extract_text(data) -> str:
         return json.dumps(data)
     return str(data)
 
+
 def _retry(fn, max_retries: int, label: str):
     last_err = None
     for attempt in range(max_retries + 1):
@@ -163,12 +180,14 @@ def _retry(fn, max_retries: int, label: str):
             time.sleep(1.5 ** attempt)
     raise ProviderError(f"{label} failed after {max_retries + 1} attempt(s): {last_err}")
 
+
 def _resolve_api_key(cfg: dict) -> Optional[str]:
     if cfg.get("api_key"):
         return cfg["api_key"]
     if cfg.get("api_key_env"):
         return os.getenv(cfg["api_key_env"])
     return None
+
 
 def _call_http_get(cfg: dict, message: str, session_id=None, context=None, image_b64=None) -> str:
     url = cfg["base_url"].rstrip("/") + cfg.get("path", "")
@@ -184,10 +203,12 @@ def _call_http_get(cfg: dict, message: str, session_id=None, context=None, image
         headers[cfg["api_key_header"]] = api_key
     elif api_key:
         params.setdefault(cfg.get("api_key_param", "api_key"), api_key)
+
     def do():
         r = requests.get(url, params=params, headers=headers, timeout=cfg.get("timeout", 60))
         r.raise_for_status()
         return r
+
     r = _retry(do, cfg.get("max_retries", 2), f"provider '{cfg['id']}'")
     try:
         data = r.json()
@@ -195,17 +216,28 @@ def _call_http_get(cfg: dict, message: str, session_id=None, context=None, image
         return r.text
     return _extract_text(data)
 
+
 def _call_openai_compatible(cfg: dict, messages: list[dict], stream: bool):
     from openai import OpenAI
     api_key = _resolve_api_key(cfg)
     if not api_key:
         raise ProviderError(f"provider '{cfg['id']}' has no API key set (api_key_env or api_key)")
     client = OpenAI(base_url=cfg["base_url"], api_key=api_key)
+
     def do():
-        return client.chat.completions.create(model=cfg["model"], messages=messages, temperature=cfg.get("temperature", 1), top_p=cfg.get("top_p", 1), max_tokens=cfg.get("max_tokens", 16384), stream=stream)
+        return client.chat.completions.create(
+            model=cfg["model"],
+            messages=messages,
+            temperature=cfg.get("temperature", 1),
+            top_p=cfg.get("top_p", 1),
+            max_tokens=cfg.get("max_tokens", 16384),
+            stream=stream,
+        )
+
     completion = _retry(do, cfg.get("max_retries", 2), f"provider '{cfg['id']}'")
     if not stream:
         return completion.choices[0].message.content or ""
+
     def _gen():
         for chunk in completion:
             if not getattr(chunk, "choices", None):
@@ -214,7 +246,9 @@ def _call_openai_compatible(cfg: dict, messages: list[dict], stream: bool):
             delta = getattr(choice, "delta", None)
             if delta is not None and getattr(delta, "content", None):
                 yield delta.content
+
     return _gen()
+
 
 def call(provider_id: str, message: str, session_id: Optional[str] = None, context: Optional[str] = None, image_b64: Optional[str] = None, history: Optional[list[dict]] = None) -> str:
     cfg = get_provider(provider_id)
@@ -224,6 +258,7 @@ def call(provider_id: str, message: str, session_id: Optional[str] = None, conte
         msgs = history if history is not None else [{"role": "user", "content": message}]
         return _call_openai_compatible(cfg, msgs, stream=False)
     raise ProviderError(f"unknown provider kind '{cfg['kind']}'")
+
 
 def call_stream(provider_id: str, message: str, session_id: Optional[str] = None, context: Optional[str] = None, image_b64: Optional[str] = None, history: Optional[list[dict]] = None) -> Generator[str, None, None]:
     cfg = get_provider(provider_id)
