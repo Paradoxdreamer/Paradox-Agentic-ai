@@ -307,25 +307,33 @@ def chat_stream(req: ChatRequest, user: str = Depends(auth.get_current_user)):
             raise HTTPException(502, str(e)) from e
     if not _valid_agent(resolved):
         raise HTTPException(400, f"unknown provider '{req.agent}'")
-    _charge_or_402(user, credits.DEFAULT_COST["chat"], "chat")
+    cost = credits.DEFAULT_COST["chat"]
+    _charge_or_402(user, cost, "chat")
     session_id = req.session_id or sessions.new_session_id()
     skey = _skey(user, session_id)
     context = sessions.as_transcript(skey) if sessions.get_history(skey) else None
     history = sessions.as_glm_messages(skey, req.message)
+
     def gen():
         yield f"{SESSION_MARK}{session_id}{SESSION_MARK}"
         if req.agent == "auto":
             yield f"{ROUTED_MARK}{resolved}{ROUTED_MARK}"
         collected = []
+        errored = False
         try:
             for chunk in providers.call_stream(resolved, req.message, session_id=session_id, context=context, image_b64=req.image_b64, history=history):
                 collected.append(chunk)
                 yield chunk
         except providers.ProviderError as e:
+            errored = True
             yield f"\n[error] {e}"
+        if errored and not collected:
+            # No useful tokens produced — refund the charge (parity with /api/chat).
+            credits.refund(user, cost, "chat")
             return
         sessions.append(skey, "user", req.message)
         sessions.append(skey, "assistant", "".join(collected))
+
     return StreamingResponse(gen(), media_type="text/plain")
 
 @app.post("/api/consensus")
