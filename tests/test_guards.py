@@ -1,15 +1,18 @@
 import io
+import json
 import zipfile
+from pathlib import Path
+
 import pytest
 
 import browser
+import config
 import owner
 import providers
 import workspace
 
 
 def test_safe_path_blocks_escape(tmp_path, monkeypatch):
-    import config
     monkeypatch.setattr(config, "WORKSPACE_DIR", tmp_path)
     monkeypatch.setattr(workspace, "BASE", tmp_path)
     with pytest.raises(workspace.WorkspaceError):
@@ -19,7 +22,6 @@ def test_safe_path_blocks_escape(tmp_path, monkeypatch):
 
 
 def test_zip_slip_skipped(tmp_path, monkeypatch):
-    import config
     monkeypatch.setattr(config, "WORKSPACE_DIR", tmp_path)
     monkeypatch.setattr(workspace, "BASE", tmp_path)
     buf = io.BytesIO()
@@ -52,10 +54,54 @@ def test_connection_info_labels_omegatech():
 
 
 def test_owner_key_match(monkeypatch):
-    import config
     monkeypatch.setattr(config, "OWNER_KEY", "secret-owner")
     monkeypatch.setattr(config, "AUTH_MODE", "none")
     monkeypatch.setattr(config, "ALLOW_LOCAL_PROVIDER_EDIT", False)
     assert owner.is_owner("default", "secret-owner") is True
     assert owner.is_owner("default", "wrong") is False
     assert owner.is_owner("default", None) is False
+
+
+def test_reserved_provider_ids(tmp_path, monkeypatch):
+    pf = tmp_path / "providers.json"
+    pf.write_text(json.dumps([]))
+    monkeypatch.setattr(providers, "PROVIDERS_FILE", pf)
+    with pytest.raises(providers.ProviderError, match="reserved"):
+        providers.add_provider({
+            "id": "auto",
+            "kind": "openai_compatible",
+            "base_url": "https://example.com/v1",
+            "model": "x",
+        })
+
+
+def test_add_and_remove_provider(tmp_path, monkeypatch):
+    pf = tmp_path / "providers.json"
+    pf.write_text(json.dumps([]))
+    monkeypatch.setattr(providers, "PROVIDERS_FILE", pf)
+    cfg = providers.add_provider({
+        "id": "test-llm",
+        "name": "Test",
+        "kind": "openai_compatible",
+        "base_url": "https://api.example.com/v1",
+        "model": "demo",
+        "api_key_env": "DEMO_KEY",
+    })
+    assert cfg["id"] == "test-llm"
+    assert "test-llm" in providers.list_provider_ids()
+    redacted = providers.redact(cfg)
+    assert redacted.get("api_key") in (None, "***")
+    providers.remove_provider("test-llm")
+    assert "test-llm" not in providers.list_provider_ids()
+
+
+def test_providers_file_parent_created(tmp_path, monkeypatch):
+    nested = tmp_path / "data" / "providers.json"
+    monkeypatch.setattr(providers, "PROVIDERS_FILE", nested)
+    providers.add_provider({
+        "id": "nested-one",
+        "kind": "http_get",
+        "base_url": "https://example.com",
+        "path": "/x",
+    })
+    assert nested.exists()
