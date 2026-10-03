@@ -26,6 +26,11 @@ class ReachYoutubeRequest(BaseModel):
     lang: str = "en"
 
 
+class ReachV2exRequest(BaseModel):
+    target: str = "hot"
+    limit: int = 15
+
+
 def _require_reach_enabled():
     if not getattr(config, "ENABLE_REACH", True):
         raise HTTPException(403, "reach is disabled. Set PARADOX_ENABLE_REACH=1 on the server if you want it.")
@@ -97,5 +102,14 @@ def register(app):
         ratelimit.enforce(request, "reach", limit=15, window_seconds=60)
         try:
             return reach.search_github(req.query, limit=max(1, min(req.limit, 20)))
+        except reach.ReachError as e:
+            raise HTTPException(502, str(e)) from e
+
+    @app.post("/api/reach/v2ex")
+    def reach_v2ex(req: ReachV2exRequest, request: Request, user: str = Depends(auth.get_current_user)):
+        _require_reach_enabled()
+        ratelimit.enforce(request, "reach", limit=20, window_seconds=60)
+        try:
+            return reach.read_v2ex(req.target or "hot", limit=max(1, min(req.limit, 30)))
         except reach.ReachError as e:
             raise HTTPException(502, str(e)) from e
