@@ -129,6 +129,7 @@ a{color:var(--teal)}
   <div class="tab" data-view="editor">Editor</div>
   <div class="tab" data-view="preview">Preview</div>
   <div class="tab" data-view="pipeline">Pipeline</div>
+  <div class="tab" data-view="reach">Reach</div>
   <div class="tab" data-view="run">Run</div>
 </div>
 
@@ -192,6 +193,30 @@ a{color:var(--teal)}
       <button class="send-btn" id="pipelineBtn" type="submit">Run</button>
     </form>
     <div id="pipelineBody"></div>
+  </div>
+
+  <div class="view" id="view-reach">
+    <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div class="panel-title">reach · internet eyes</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim)">
+        Inspired by Agent-Reach — web (Jina), RSS, YouTube captions, GitHub, search. SSRF-guarded.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="reachMode" style="background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px;border-radius:6px">
+          <option value="read">smart read (auto)</option>
+          <option value="web">web page</option>
+          <option value="rss">RSS / Atom</option>
+          <option value="youtube">YouTube captions</option>
+          <option value="github">GitHub repo</option>
+          <option value="search">web search</option>
+          <option value="github-search">GitHub search</option>
+          <option value="doctor">doctor</option>
+        </select>
+        <input id="reachInput" placeholder="URL, owner/repo, or search query…" style="flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:6px" />
+        <button class="send-btn" id="reachGoBtn" type="button" style="height:40px">Go</button>
+      </div>
+      <pre id="reachOut" style="margin:0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:pre-wrap;max-height:480px;overflow:auto;color:var(--text-dim)"></pre>
+    </div>
   </div>
 
   <div class="view" id="view-run">
