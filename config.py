@@ -42,16 +42,14 @@ AUTH_MODE = os.getenv("PARADOX_AUTH_MODE", "none")
 CREATOR_EMAILS = [e.strip() for e in os.getenv("CREATOR_EMAILS", "").split(",") if e.strip()]
 STARTING_CREDITS = int(os.getenv("PARADOX_STARTING_CREDITS", "50"))
 
-# Owner identity: any of these makes you the person who can add/remove
-# providers for everyone.
-#   PARADOX_OWNER_KEY   — secret you type in the UI / send as X-Owner-Key
-#   CREATOR_EMAILS      — those accounts become owner on signup
-#   PARADOX_ALLOW_LOCAL_PROVIDER_EDIT=1 — local single-user convenience
 OWNER_KEY = os.getenv("PARADOX_OWNER_KEY", "").strip()
 ALLOW_LOCAL_PROVIDER_EDIT = _flag("PARADOX_ALLOW_LOCAL_PROVIDER_EDIT", "0")
 
 ENABLE_EXEC = _flag("PARADOX_ENABLE_EXEC", "0")
 ENABLE_BROWSE = _flag("PARADOX_ENABLE_BROWSE", "0")
+# Zero-config public internet read (Jina/RSS/YouTube/GitHub/search). Safe SSRF-guarded.
+ENABLE_REACH = _flag("PARADOX_ENABLE_REACH", "1")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()  # optional, higher GH rate limits
 
 _CORS = os.getenv("PARADOX_CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000")
 CORS_ORIGINS = [o.strip() for o in _CORS.split(",") if o.strip()]
