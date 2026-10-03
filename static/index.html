@@ -4,21 +4,223 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#0A2540" />
-<meta name="description" content="Paradox Tech — multi-model agentic console with internet eyes" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>Paradox Tech — Agentic AI</title>
 <link rel="manifest" href="/static/manifest.json" />
 <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
-<link rel="apple-touch-icon" href="/static/icon.svg" />
+<title>Paradox Tech — Agentic AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<!-- styles and body remain in app; this commit ensures PWA + V2EX option — full index synced from local -->
+<link rel="stylesheet" href="/static/console.css" />
 </head>
 <body>
-<p>If you see this, full index push failed partial. Redeploy from local static/index.html.</p>
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span><b>PARADOX TECH</b> · agentic console</span>
+    <span>plug any model · one workspace</span>
+    <span>owner-gated registry</span>
+    <span>from darkness · digital innovations</span>
+    <span><b>PARADOX TECH</b> · agentic console</span>
+    <span>plug any model · one workspace</span>
+    <span>owner-gated registry</span>
+    <span>from darkness · digital innovations</span>
+  </div>
+</div>
+
+<div class="topbar"><div id="accountArea"></div></div>
+
+<header class="brand">
+  <div class="eyebrow">multi-model agentic platform</div>
+  <h1 class="wordmark">Para<span class="dox">dox</span> AI</h1>
+  <p class="house">Paradox Tech</p>
+  <p class="tagline">Allen once said: <em>from the deepest depth of darkness comes digital innovations.</em></p>
+</header>
+
+<nav class="agents-strip" id="agentStrip"></nav>
+<div class="connection-bar" id="connectionBar">pick a provider</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-view="chat">Chat</div>
+  <div class="tab" data-view="editor">Editor</div>
+  <div class="tab" data-view="preview">Preview</div>
+  <div class="tab" data-view="pipeline">Pipeline</div>
+  <div class="tab" data-view="reach">Reach</div>
+  <div class="tab" data-view="run">Run</div>
+</div>
+
+<main class="console">
+<aside class="workspace-panel">
+  <div class="panel-title">workspace</div>
+  <div>
+    <button class="ws-btn" id="refreshBtn">refresh</button>
+    <button class="ws-btn" id="uploadBtn">import zip</button>
+    <button class="ws-btn" id="exportBtn">export</button>
+    <input type="file" id="zipInput" accept=".zip" hidden />
+  </div>
+  <div id="fileList" style="margin-top:10px"></div>
+  <div class="panel-title" style="margin-top:16px">snapshots</div>
+  <div id="snapList" style="font-size:12px;color:var(--text-dim)"></div>
+  <button class="ws-btn" id="snapBtn" style="margin-top:6px">checkpoint</button>
+</aside>
+
+<section>
+  <div class="view active" id="view-chat">
+    <div class="messages" id="messages">
+      <div class="msg agent">Paradox Tech is online. Pick a provider and describe what you want to build.</div>
+    </div>
+    <div class="composer">
+      <div class="composer-tools">
+        <button type="button" class="ws-btn" id="imgBtn" title="Attach image">📎</button>
+        <img id="imgPreview" class="img-preview" alt="" />
+        <button type="button" class="ws-btn" id="imgClear" title="Clear image" style="display:none;font-size:10px">✕</button>
+        <input type="file" id="imgInput" accept="image/*" hidden />
+      </div>
+      <form id="composer" style="display:flex;flex:1;gap:8px">
+        <textarea id="input" placeholder="Describe the app, site, or task… (Enter to send, Shift+Enter for newline)" required></textarea>
+        <button class="send-btn" id="sendBtn" type="submit">Send</button>
+      </form>
+    </div>
+    <div class="mem-row">
+      <span id="memStatus">session: none</span>
+      <button class="ws-btn" id="forgetBtn">forget</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-editor">
+    <div id="editorPath">no file open — click a file in the workspace</div>
+    <textarea id="editorArea" placeholder="file contents…"></textarea>
+    <button class="ws-btn" id="saveBtn">save</button>
+  </div>
+
+  <div class="view" id="view-preview">
+    <div style="margin-bottom:8px">
+      <input id="previewPath" value="index.html" />
+      <button class="ws-btn" id="previewGoBtn">open</button>
+      <button class="ws-btn" id="previewReloadBtn">reload</button>
+    </div>
+    <iframe id="previewFrame" style="width:100%;min-height:360px;border:1px solid var(--line);background:#fff;border-radius:6px"></iframe>
+  </div>
+
+  <div class="view" id="view-pipeline">
+    <div id="pipelineRoles"></div>
+    <form id="pipelineForm" class="composer">
+      <input id="pipelineInput" placeholder="build task…" required style="flex:1;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:12px" />
+      <button class="send-btn" id="pipelineBtn" type="submit">Run</button>
+    </form>
+    <div id="pipelineBody"></div>
+  </div>
+
+  <div class="view" id="view-reach">
+    <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div class="panel-title">reach · internet eyes</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim)">
+        Inspired by Agent-Reach — web · RSS · YouTube · GitHub · V2EX · search. Zero-config · SSRF-guarded.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="reachMode" style="background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px;border-radius:6px">
+          <option value="read">smart read (auto)</option>
+          <option value="web">web page</option>
+          <option value="rss">RSS / Atom</option>
+          <option value="youtube">YouTube captions</option>
+          <option value="github">GitHub repo</option>
+          <option value="v2ex">V2EX</option>
+          <option value="search">web search</option>
+          <option value="github-search">GitHub search</option>
+          <option value="doctor">doctor</option>
+        </select>
+        <input id="reachInput" placeholder="URL, owner/repo, hot, node:python, or search…" style="flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:6px" />
+        <button class="send-btn" id="reachGoBtn" type="button" style="height:40px">Go</button>
+      </div>
+      <pre id="reachOut" style="margin:0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:pre-wrap;max-height:480px;overflow:auto;color:var(--text-dim)"></pre>
+    </div>
+  </div>
+
+  <div class="view" id="view-run">
+    <input id="runCommand" placeholder="shell command" />
+    <input id="runFile" placeholder="file to auto-fix (optional)" />
+    <div style="display:flex;gap:8px">
+      <button class="ws-btn" id="runBtn">run once</button>
+      <button class="ws-btn" id="autofixBtn">run + auto-fix</button>
+    </div>
+    <div id="runOutput"></div>
+  </div>
+</section>
+</main>
+
+<div class="modal-overlay" id="providerModalOverlay">
+  <div class="modal">
+    <h2>Add a model</h2>
+    <div class="modal-sub">Owner only.</div>
+    <form id="providerForm">
+      <label>Platform preset</label>
+      <select id="pf_preset">
+        <option value="custom">Custom</option>
+        <option value="omegatech">Omegatech HTTP GET</option>
+        <option value="nvidia">NVIDIA NIM</option>
+        <option value="openai">OpenAI</option>
+        <option value="groq">Groq</option>
+      </select>
+      <label>Id *</label><input id="pf_id" required />
+      <label>Display name</label><input id="pf_name" />
+      <label>Connection kind *</label>
+      <select id="pf_kind">
+        <option value="openai_compatible">openai_compatible</option>
+        <option value="http_get">http_get</option>
+      </select>
+      <label>Base URL *</label><input id="pf_base_url" required />
+      <div class="kind-only" id="kind_openai"><label>Model</label><input id="pf_model" /></div>
+      <div class="kind-only" id="kind_http">
+        <label>Path</label><input id="pf_path" placeholder="/Claude" />
+        <label>Message param</label><input id="pf_message_param" placeholder="text" />
+        <label>Session param</label><input id="pf_session_param" />
+        <label>Image param</label><input id="pf_image_param" />
+      </div>
+      <label>API key</label><input id="pf_api_key" />
+      <label>API key env var</label><input id="pf_api_key_env" />
+      <label>Description</label><textarea id="pf_description" rows="2"></textarea>
+      <label><input type="checkbox" id="pf_streaming" /> streaming</label>
+      <label><input type="checkbox" id="pf_images" /> images</label>
+      <div class="modal-err" id="providerModalErr"></div>
+      <div class="modal-actions">
+        <button type="button" class="ws-btn" id="providerCancelBtn">cancel</button>
+        <button type="submit" class="send-btn" id="providerSaveBtn">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="authModalOverlay">
+  <div class="modal">
+    <h2 id="authModalTitle">Sign in</h2>
+    <div style="display:flex;gap:12px;margin-bottom:12px">
+      <button type="button" class="ws-btn" id="authTabLogin">Log in</button>
+      <button type="button" class="ws-btn" id="authTabSignup">Sign up</button>
+    </div>
+    <div id="googleLoginBlock" style="display:none;margin-bottom:12px">
+      <button type="button" class="ws-btn" id="googleLoginBtn">Continue with Google</button>
+    </div>
+    <form id="authForm">
+      <label>Email</label><input id="auth_email" type="email" required />
+      <label>Password</label><input id="auth_password" type="password" required minlength="8" />
+      <div id="signupTermsRow" style="display:none;margin-top:10px">
+        <label><input type="checkbox" id="auth_accept_terms" /> I agree to Terms and Privacy</label>
+      </div>
+      <div class="modal-err" id="authModalErr"></div>
+      <div class="modal-actions">
+        <button type="button" class="ws-btn" id="authCancelBtn">cancel</button>
+        <button type="submit" class="send-btn" id="authSubmitBtn">Log in</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer class="site-footer">Paradox Tech · Agentic AI</footer>
 <script src="/static/app.js"></script>
 <script src="/static/reach_ui.js"></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/static/sw.js").catch(function(){})});}</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("/static/sw.js").catch(function () {});
+  });
+}
+</script>
 </body>
 </html>
