@@ -1,0 +1,18 @@
+{
+  "name": "Paradox Tech — Agentic AI",
+  "short_name": "Paradox",
+  "description": "Multi-model agentic console with internet eyes (Reach)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#061525",
+  "theme_color": "#0A2540",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Paradox">
+  <rect width="128" height="128" rx="28" fill="#0A2540"/>
+  <circle cx="64" cy="64" r="36" fill="none" stroke="#00D4C8" stroke-width="6"/>
+  <path d="M40 72 L64 40 L88 72 Z" fill="#00D4C8" opacity="0.9"/>
+  <circle cx="64" cy="78" r="6" fill="#E8F4F3"/>
+</svg>
