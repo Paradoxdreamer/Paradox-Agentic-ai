@@ -112,7 +112,7 @@
     <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
       <div class="panel-title">reach · internet eyes</div>
       <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim)">
-        Inspired by Agent-Reach — web · RSS · YouTube · GitHub · V2EX · search. Zero-config · SSRF-guarded.
+        web · RSS · YouTube · GitHub · V2EX · Twitter · Reddit · search · owner vault. SSRF-guarded.
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <select id="reachMode" style="background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px;border-radius:6px">
@@ -122,14 +122,47 @@
           <option value="youtube">YouTube captions</option>
           <option value="github">GitHub repo</option>
           <option value="v2ex">V2EX</option>
+          <option value="twitter">Twitter / X</option>
+          <option value="reddit">Reddit</option>
           <option value="search">web search</option>
+          <option value="vault">vault status (owner)</option>
           <option value="github-search">GitHub search</option>
           <option value="doctor">doctor</option>
         </select>
-        <input id="reachInput" placeholder="URL, owner/repo, hot, node:python, or search…" style="flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:6px" />
+        <input id="reachInput" placeholder="URL, owner/repo, or search query…" style="flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:6px" />
         <button class="send-btn" id="reachGoBtn" type="button" style="height:40px">Go</button>
       </div>
-      <pre id="reachOut" style="margin:0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:pre-wrap;max-height:480px;overflow:auto;color:var(--text-dim)"></pre>
+      <pre id="reachOut" style="margin:0;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:pre-wrap;max-height:320px;overflow:auto;color:var(--text-dim)"></pre>
+
+      <div class="panel-title" style="margin-top:8px">vault · owner cookies</div>
+      <div id="vaultBadges" style="display:flex;gap:8px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim)">
+        <span id="badgeTwitter">twitter: …</span>
+        <span id="badgeReddit">reddit: …</span>
+        <button type="button" class="ws-btn" id="vaultRefreshBtn">refresh status</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+        <div style="border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--panel)">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal);margin-bottom:6px">Twitter / X</div>
+          <label style="font-size:11px;color:var(--text-dim)">auth_token</label>
+          <input id="vaultTwAuth" type="password" autocomplete="off" placeholder="from x.com cookies" style="width:100%;margin:4px 0 8px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px" />
+          <label style="font-size:11px;color:var(--text-dim)">ct0</label>
+          <input id="vaultTwCt0" type="password" autocomplete="off" placeholder="CSRF token" style="width:100%;margin:4px 0 8px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px" />
+          <div style="display:flex;gap:6px">
+            <button type="button" class="ws-btn" id="vaultTwSave">save</button>
+            <button type="button" class="ws-btn" id="vaultTwClear">clear</button>
+          </div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--panel)">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal);margin-bottom:6px">Reddit</div>
+          <label style="font-size:11px;color:var(--text-dim)">cookie header</label>
+          <textarea id="vaultRdCookie" rows="3" placeholder="reddit_session=…; …" style="width:100%;margin:4px 0 8px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;resize:vertical"></textarea>
+          <div style="display:flex;gap:6px">
+            <button type="button" class="ws-btn" id="vaultRdSave">save</button>
+            <button type="button" class="ws-btn" id="vaultRdClear">clear</button>
+          </div>
+        </div>
+      </div>
+      <div id="vaultMsg" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);min-height:16px"></div>
     </div>
   </div>
 
