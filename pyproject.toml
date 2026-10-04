@@ -1,8 +1,31 @@
+[project]
+name = "paradox-agentic-ai"
+version = "1.0.0"
+description = "Paradox Tech multi-model agentic console with Reach internet eyes"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.111",
+  "uvicorn[standard]>=0.30",
+  "requests>=2.31",
+  "beautifulsoup4>=4.12",
+  "python-dotenv>=1.0",
+  "openai>=1.30",
+  "pydantic>=2.0",
+  "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+[tool.vercel]
+entrypoint = "server:app"
+
 [tool.ruff]
 line-length = 110
 
 [tool.ruff.lint]
-# Pyflakes (unused imports/vars, undefined names) + syntax errors only.
-# Deliberately not enabling style rules (E/W beyond syntax) so CI catches
-# real bugs without turning into a formatting gate.
 select = ["F", "E9"]
