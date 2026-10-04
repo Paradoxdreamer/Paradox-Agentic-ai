@@ -1,14 +1,19 @@
 """Reach HTTP routes — registered onto the FastAPI app."""
 from __future__ import annotations
 
-from fastapi import Depends, HTTPException, Request
+from typing import Optional
+
+from fastapi import Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 
 import auth
 import browser
 import config
+import owner
 import ratelimit
 import reach
+import reach_social
+import vault
 
 
 class ReachReadRequest(BaseModel):
@@ -31,9 +36,31 @@ class ReachV2exRequest(BaseModel):
     limit: int = 15
 
 
+class ReachTwitterRequest(BaseModel):
+    url: str = ""
+    query: str = ""
+    limit: int = 10
+
+
+class ReachRedditRequest(BaseModel):
+    url: str = ""
+    query: str = ""
+    limit: int = 10
+
+
+class VaultSetRequest(BaseModel):
+    platform: str
+    secrets: dict
+
+
 def _require_reach_enabled():
     if not getattr(config, "ENABLE_REACH", True):
         raise HTTPException(403, "reach is disabled. Set PARADOX_ENABLE_REACH=1 on the server if you want it.")
+
+
+def _require_owner(user: str, x_owner_key: Optional[str]):
+    if not owner.is_owner(user, x_owner_key):
+        raise HTTPException(403, "owner only: " + owner.owner_setup_hint())
 
 
 def register(app):
@@ -48,7 +75,7 @@ def register(app):
         ratelimit.enforce(request, "reach", limit=30, window_seconds=60)
         try:
             return reach.smart_read(req.url, max_chars=max(1000, min(req.max_chars, 50000)))
-        except (reach.ReachError, browser.BrowserError) as e:
+        except (reach.ReachError, browser.BrowserError, reach_social.SocialError) as e:
             raise HTTPException(502, str(e)) from e
 
     @app.post("/api/reach/web")
@@ -113,3 +140,62 @@ def register(app):
             return reach.read_v2ex(req.target or "hot", limit=max(1, min(req.limit, 30)))
         except reach.ReachError as e:
             raise HTTPException(502, str(e)) from e
+
+    @app.post("/api/reach/twitter")
+    def reach_twitter(req: ReachTwitterRequest, request: Request, user: str = Depends(auth.get_current_user)):
+        _require_reach_enabled()
+        ratelimit.enforce(request, "reach", limit=15, window_seconds=60)
+        try:
+            if (req.query or "").strip():
+                return reach_social.search_twitter(req.query, limit=max(1, min(req.limit, 20)))
+            if not (req.url or "").strip():
+                raise HTTPException(400, "provide url (tweet) or query (search)")
+            return reach_social.read_twitter(req.url)
+        except reach_social.SocialError as e:
+            raise HTTPException(502, str(e)) from e
+
+    @app.post("/api/reach/reddit")
+    def reach_reddit(req: ReachRedditRequest, request: Request, user: str = Depends(auth.get_current_user)):
+        _require_reach_enabled()
+        ratelimit.enforce(request, "reach", limit=15, window_seconds=60)
+        try:
+            if (req.query or "").strip():
+                return reach_social.search_reddit(req.query, limit=max(1, min(req.limit, 25)))
+            if not (req.url or "").strip():
+                raise HTTPException(400, "provide url (post/listing) or query (search)")
+            return reach_social.read_reddit(req.url, limit=max(1, min(req.limit, 30)))
+        except reach_social.SocialError as e:
+            raise HTTPException(502, str(e)) from e
+
+    @app.get("/api/vault/status")
+    def vault_status(
+        user: str = Depends(auth.get_current_user),
+        x_owner_key: Optional[str] = Header(default=None),
+    ):
+        _require_owner(user, x_owner_key)
+        return vault.status()
+
+    @app.put("/api/vault/{platform}")
+    def vault_set(
+        platform: str,
+        req: VaultSetRequest,
+        user: str = Depends(auth.get_current_user),
+        x_owner_key: Optional[str] = Header(default=None),
+    ):
+        _require_owner(user, x_owner_key)
+        try:
+            return vault.set_secrets(platform or req.platform, req.secrets or {})
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+
+    @app.delete("/api/vault/{platform}")
+    def vault_clear(
+        platform: str,
+        user: str = Depends(auth.get_current_user),
+        x_owner_key: Optional[str] = Header(default=None),
+    ):
+        _require_owner(user, x_owner_key)
+        try:
+            return vault.clear_platform(platform)
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
