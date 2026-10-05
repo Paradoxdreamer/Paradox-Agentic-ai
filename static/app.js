@@ -173,6 +173,14 @@ function peelMarkers(raw) {
     }
   }
 
+  m = text.match(/@@TOOLS@@([^@]*)@@\n/);
+  if (m) {
+    const names = m[1];
+    text = text.replace(m[0], "");
+    const bar = $("connectionBar");
+    if (bar && names) bar.textContent = "tools → " + names;
+  }
+
   // incomplete marker — hold from first @@
   const i = text.indexOf("@@");
   if (i >= 0) {
@@ -398,7 +406,7 @@ function toggleKindFields() {
   $("kind_http").classList.toggle("show", kind === "http_get");
 }
 
-// ── wire events ────────────────────────────────────────────────────
+// ── wire events (rest of file continues below in same module) ─────
 function wire() {
   $("tabs").onclick = (e) => {
     const tab = e.target.closest(".tab");
@@ -523,22 +531,19 @@ function wire() {
     const body = {
       id: $("pf_id").value.trim(),
       name: $("pf_name").value.trim() || undefined,
+      description: $("pf_description").value.trim() || undefined,
       kind,
       base_url: $("pf_base_url").value.trim(),
-      description: $("pf_description").value.trim() || undefined,
+      path: kind === "http_get" ? $("pf_path").value.trim() : undefined,
+      message_param: kind === "http_get" ? $("pf_message_param").value.trim() : undefined,
+      session_param: kind === "http_get" ? $("pf_session_param").value.trim() || undefined : undefined,
+      image_param: kind === "http_get" ? $("pf_image_param").value.trim() || undefined : undefined,
+      model: kind === "openai_compatible" ? $("pf_model").value.trim() : undefined,
       api_key: $("pf_api_key").value.trim() || undefined,
       api_key_env: $("pf_api_key_env").value.trim() || undefined,
-      platform: $("pf_preset").value || "custom",
       supports_streaming: $("pf_streaming").checked,
       supports_images: $("pf_images").checked,
     };
-    if (kind === "openai_compatible") body.model = $("pf_model").value.trim();
-    else {
-      body.path = $("pf_path").value.trim() || undefined;
-      body.message_param = $("pf_message_param").value.trim() || undefined;
-      body.session_param = $("pf_session_param").value.trim() || undefined;
-      body.image_param = $("pf_image_param").value.trim() || undefined;
-    }
     try {
       const data = await apiJson("/api/providers", {
         method: "POST",
@@ -546,8 +551,9 @@ function wire() {
         body: JSON.stringify(body),
       });
       $("providerModalOverlay").classList.remove("open");
-      state.agent = data.id;
       await loadProviders();
+      state.agent = data.id;
+      renderAgents();
     } catch (err) {
       const errEl = $("providerModalErr");
       errEl.textContent = err.message;
@@ -556,68 +562,54 @@ function wire() {
   };
 
   let authTab = "login";
+  $("authTabLogin").onclick = () => { authTab = "login"; $("signupTermsRow").style.display = "none"; $("authModalTitle").textContent = "Sign in"; $("authSubmitBtn").textContent = "Log in"; };
+  $("authTabSignup").onclick = () => { authTab = "signup"; $("signupTermsRow").style.display = "block"; $("authModalTitle").textContent = "Sign up"; $("authSubmitBtn").textContent = "Sign up"; };
   $("authCancelBtn").onclick = () => $("authModalOverlay").classList.remove("open");
-  $("authTabLogin").onclick = () => { authTab = "login"; $("signupTermsRow").style.display = "none"; };
-  $("authTabSignup").onclick = () => { authTab = "signup"; $("signupTermsRow").style.display = "block"; };
-  $("googleLoginBtn").onclick = () => { location.href = "/auth/google/login"; };
   $("authForm").onsubmit = async (e) => {
     e.preventDefault();
     const errEl = $("authModalErr");
-    const email = $("auth_email").value.trim();
-    const password = $("auth_password").value;
-    if (authTab === "signup" && !$("auth_accept_terms").checked) {
-      errEl.textContent = "accept terms";
-      errEl.style.display = "block";
-      return;
-    }
     try {
-      const data = await apiJson(authTab === "signup" ? "/api/auth/signup" : "/api/auth/login", {
+      const path = authTab === "signup" ? "/api/auth/signup" : "/api/auth/login";
+      const body = {
+        email: $("auth_email").value.trim(),
+        password: $("auth_password").value,
+      };
+      if (authTab === "signup") body.accepted_terms = $("auth_accept_terms").checked;
+      const data = await apiJson(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(authTab === "signup"
-          ? { email, password, accepted_terms: true }
-          : { email, password }),
+        body: JSON.stringify(body),
       });
       setApiKey(data.api_key);
       $("authModalOverlay").classList.remove("open");
       await renderAccount();
-      loadProviders();
-      loadFiles();
+      await loadProviders();
     } catch (err) {
       errEl.textContent = err.message;
       errEl.style.display = "block";
     }
   };
+  if ($("googleLoginBtn")) $("googleLoginBtn").onclick = () => { window.location.href = "/auth/google/login"; };
 }
 
 async function boot() {
-  const params = new URLSearchParams(location.search);
-  const hash = new URLSearchParams((location.hash || "").replace(/^#/, ""));
-  const token = params.get("login_token") || hash.get("login_token");
-  const err = params.get("login_error");
-  if (token) {
-    setApiKey(token);
-    history.replaceState({}, "", location.pathname);
-  } else if (err) {
-    alert("Sign-in failed: " + decodeURIComponent(err));
-    history.replaceState({}, "", location.pathname);
-  }
-
   try {
     const meta = await (await fetch("/api/meta")).json();
     state.authMode = meta.auth_mode || "none";
     state.googleOk = !!meta.google_login_available;
     state.ownerHint = meta.owner_hint || "";
   } catch (_) {}
-
-  if (state.googleOk) $("googleLoginBlock").style.display = "block";
-
+  if (location.hash.startsWith("#login_token=")) {
+    setApiKey(location.hash.slice("#login_token=".length));
+    history.replaceState(null, "", location.pathname);
+  }
+  if (state.googleOk && $("googleLoginBlock")) $("googleLoginBlock").style.display = "block";
   wire();
-  await refreshOwner();
   await renderAccount();
+  await refreshOwner();
   await loadProviders();
-  loadFiles();
-  loadSnapshots();
+  await loadFiles();
+  await loadSnapshots();
   setMemStatus();
 }
 
