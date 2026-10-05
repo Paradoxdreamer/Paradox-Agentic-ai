@@ -23,6 +23,7 @@ import providers
 import ratelimit
 import reach_routes
 import router
+import agent_loop
 import sessions
 import snapshots
 import workspace
@@ -161,6 +162,7 @@ def meta():
         "exec_enabled": config.ENABLE_EXEC,
         "browse_enabled": config.ENABLE_BROWSE,
         "reach_enabled": getattr(config, "ENABLE_REACH", True),
+        "tools_enabled": getattr(config, "ENABLE_TOOLS", True),
         "owner_hint": owner.owner_setup_hint(),
     }
 
@@ -290,14 +292,30 @@ def chat(req: ChatRequest, user: str = Depends(auth.get_current_user)):
     skey = _skey(user, session_id)
     context = sessions.as_transcript(skey) if sessions.get_history(skey) else None
     history = sessions.as_glm_messages(skey, req.message)
+    tool_trace = []
     try:
-        reply = providers.call(resolved, req.message, session_id=session_id, context=context, image_b64=req.image_b64, history=history)
-    except providers.ProviderError as e:
+        use_tools = not req.image_b64 and getattr(config, "ENABLE_TOOLS", True)
+        if use_tools:
+            result = agent_loop.run_agent(resolved, history, use_tools=True)
+            reply = result["reply"]
+            tool_trace = result.get("tool_trace") or []
+        else:
+            reply = providers.call(
+                resolved, req.message, session_id=session_id,
+                context=context, image_b64=req.image_b64, history=history,
+            )
+    except (providers.ProviderError, agent_loop.AgentLoopError) as e:
         credits.refund(user, cost, "chat")
         raise HTTPException(502, str(e)) from e
     sessions.append(skey, "user", req.message)
     sessions.append(skey, "assistant", reply)
-    return {"reply": reply, "session_id": session_id, "resolved_agent": resolved}
+    return {
+        "reply": reply,
+        "session_id": session_id,
+        "resolved_agent": resolved,
+        "tool_trace": tool_trace,
+    }
+
 
 @app.post("/api/chat/stream")
 def chat_stream(req: ChatRequest, user: str = Depends(auth.get_current_user)):
@@ -315,6 +333,7 @@ def chat_stream(req: ChatRequest, user: str = Depends(auth.get_current_user)):
     skey = _skey(user, session_id)
     context = sessions.as_transcript(skey) if sessions.get_history(skey) else None
     history = sessions.as_glm_messages(skey, req.message)
+    use_tools = not req.image_b64 and getattr(config, "ENABLE_TOOLS", True)
 
     def gen():
         yield f"{SESSION_MARK}{session_id}{SESSION_MARK}"
@@ -323,19 +342,34 @@ def chat_stream(req: ChatRequest, user: str = Depends(auth.get_current_user)):
         collected = []
         errored = False
         try:
-            for chunk in providers.call_stream(resolved, req.message, session_id=session_id, context=context, image_b64=req.image_b64, history=history):
+            if use_tools:
+                stream_iter = agent_loop.stream_agent(resolved, history, use_tools=True)
+            else:
+                stream_iter = providers.call_stream(
+                    resolved, req.message, session_id=session_id,
+                    context=context, image_b64=req.image_b64, history=history,
+                )
+            for chunk in stream_iter:
                 collected.append(chunk)
                 yield chunk
-        except providers.ProviderError as e:
+        except (providers.ProviderError, agent_loop.AgentLoopError) as e:
             errored = True
             yield f"\n[error] {e}"
         if errored and not collected:
             credits.refund(user, cost, "chat")
             return
+        plain = "".join(collected)
+        while "@@TOOLS@@" in plain:
+            start_m = plain.find("@@TOOLS@@")
+            end_m = plain.find("@@\n", start_m)
+            if end_m < 0:
+                break
+            plain = plain[:start_m] + plain[end_m + 3 :]
         sessions.append(skey, "user", req.message)
-        sessions.append(skey, "assistant", "".join(collected))
+        sessions.append(skey, "assistant", plain)
 
     return StreamingResponse(gen(), media_type="text/plain")
+
 
 @app.post("/api/consensus")
 def run_consensus_route(req: ConsensusRequest, user: str = Depends(auth.get_current_user)):
