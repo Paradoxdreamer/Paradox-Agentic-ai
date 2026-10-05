@@ -49,7 +49,12 @@ ENABLE_EXEC = _flag("PARADOX_ENABLE_EXEC", "0")
 ENABLE_BROWSE = _flag("PARADOX_ENABLE_BROWSE", "0")
 # Zero-config public internet read (Jina/RSS/YouTube/GitHub/search). Safe SSRF-guarded.
 ENABLE_REACH = _flag("PARADOX_ENABLE_REACH", "1")
+# Chat agent may call Reach tools (openai_compatible providers only)
+ENABLE_TOOLS = _flag("PARADOX_ENABLE_TOOLS", "1")
+MAX_TOOL_ROUNDS = int(os.getenv("PARADOX_MAX_TOOL_ROUNDS", "4"))
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()  # optional, higher GH rate limits
+# Optional: owner cookie vault path (twitter/reddit secrets)
+# PARADOX_VAULT_FILE defaults next to providers.json
 
 _CORS = os.getenv("PARADOX_CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000")
 CORS_ORIGINS = [o.strip() for o in _CORS.split(",") if o.strip()]
