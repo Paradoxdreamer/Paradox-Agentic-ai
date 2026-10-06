@@ -4,7 +4,6 @@ const $ = (id) => document.getElementById(id);
 const SESSION_MARK = "@@SESSION@@";
 const ROUTED_MARK = "@@ROUTED@@";
 
-// ── state ──────────────────────────────────────────────────────────
 const state = {
   agent: null,
   sessionId: null,
@@ -16,11 +15,12 @@ const state = {
   apiKey: localStorage.getItem("paradox_api_key") || "",
   ownerKey: localStorage.getItem("paradox_owner_key") || "",
   imageB64: null,
+  attachedPath: null,
+  attachedKind: null,
   busy: false,
   editorPath: null,
 };
 
-// ── storage helpers ────────────────────────────────────────────────
 function setApiKey(k) {
   state.apiKey = k || "";
   if (state.apiKey) localStorage.setItem("paradox_api_key", state.apiKey);
@@ -38,7 +38,6 @@ function headers(extra) {
   return h;
 }
 
-// ── tiny DOM helpers ───────────────────────────────────────────────
 function el(tag, cls, text) {
   const n = document.createElement(tag);
   if (cls) n.className = cls;
@@ -68,7 +67,6 @@ function setBusy(on) {
   }
 }
 
-// ── API ────────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
   return fetch(path, { ...opts, headers: headers(opts.headers || {}) });
 }
@@ -84,7 +82,6 @@ async function apiJson(path, opts = {}) {
   return data;
 }
 
-// ── stream chat ────────────────────────────────────────────────────
 async function sendChat(text) {
   if (!text || !state.agent || state.busy) return;
   setBusy(true);
@@ -95,15 +92,21 @@ async function sendChat(text) {
   const agentDiv = appendMsg("agent", "");
   agentDiv.classList.add("streaming");
 
+  let msgText = text;
+  if (state.attachedPath && !state.imageB64) {
+    msgText = text + "\n\n[attached " + (state.attachedKind || "file") + ": " + state.attachedPath + "]";
+  } else if (state.attachedPath && state.imageB64) {
+    msgText = text + "\n\n[attached image saved at: " + state.attachedPath + "]";
+  }
   const body = {
     agent: state.agent,
-    message: text,
+    message: msgText,
     session_id: state.sessionId || undefined,
   };
   if (state.imageB64) {
     body.image_b64 = state.imageB64;
-    clearImage();
   }
+  clearImage();
 
   try {
     const res = await api("/api/chat/stream", {
@@ -153,7 +156,6 @@ async function sendChat(text) {
   setBusy(false);
 }
 
-/** Strip control markers. Returns { text, held }. */
 function peelMarkers(raw) {
   let text = raw;
 
@@ -181,7 +183,6 @@ function peelMarkers(raw) {
     if (bar && names) bar.textContent = "tools → " + names;
   }
 
-  // incomplete marker — hold from first @@
   const i = text.indexOf("@@");
   if (i >= 0) {
     return { text: text.slice(0, i), held: text.slice(i) };
@@ -189,33 +190,68 @@ function peelMarkers(raw) {
   return { text, held: "" };
 }
 
-// ── image attach ───────────────────────────────────────────────────
 function clearImage() {
   state.imageB64 = null;
+  state.attachedPath = null;
+  state.attachedKind = null;
   const prev = $("imgPreview");
   if (prev) { prev.style.display = "none"; prev.removeAttribute("src"); }
+  const vid = $("vidPreview");
+  if (vid) { vid.style.display = "none"; vid.removeAttribute("src"); try { vid.load(); } catch (_) {} }
+  const lab = $("fileAttachLabel");
+  if (lab) { lab.style.display = "none"; lab.textContent = ""; }
   const clr = $("imgClear");
   if (clr) clr.style.display = "none";
   const inp = $("imgInput");
   if (inp) inp.value = "";
 }
 
-function onImagePicked(file) {
+async function onImagePicked(file) {
   if (!file) return clearImage();
-  const reader = new FileReader();
-  reader.onload = () => {
-    const dataUrl = reader.result;
-    const i = dataUrl.indexOf(",");
-    state.imageB64 = i >= 0 ? dataUrl.slice(i + 1) : dataUrl;
-    const prev = $("imgPreview");
-    if (prev) { prev.src = dataUrl; prev.style.display = "block"; }
-    const clr = $("imgClear");
-    if (clr) clr.style.display = "inline-block";
-  };
-  reader.readAsDataURL(file);
+  clearImage();
+  const type = file.type || "";
+  const isImage = type.startsWith("image/");
+  const isVideo = type.startsWith("video/");
+  const clr = $("imgClear");
+  if (clr) clr.style.display = "inline-block";
+
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const meta = await apiJson("/api/workspace/upload-file", { method: "POST", body: form });
+    state.attachedPath = meta.path;
+    state.attachedKind = meta.kind || "file";
+    const lab = $("fileAttachLabel");
+    if (lab) {
+      lab.textContent = (meta.kind || "file") + ": " + meta.path;
+      lab.style.display = "inline";
+    }
+    loadFiles();
+  } catch (e) {
+    alert("upload failed: " + (e.message || e));
+    clearImage();
+    return;
+  }
+
+  if (isImage) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const i = dataUrl.indexOf(",");
+      state.imageB64 = i >= 0 ? dataUrl.slice(i + 1) : dataUrl;
+      const prev = $("imgPreview");
+      if (prev) { prev.src = dataUrl; prev.style.display = "block"; }
+    };
+    reader.readAsDataURL(file);
+  } else if (isVideo) {
+    const vid = $("vidPreview");
+    if (vid) {
+      vid.src = URL.createObjectURL(file);
+      vid.style.display = "block";
+    }
+  }
 }
 
-// ── providers ──────────────────────────────────────────────────────
 function connectionSummary(id) {
   if (id === "auto") return "router picks a provider per message";
   if (id === "consensus") return "asks every provider, then merges";
@@ -277,7 +313,6 @@ async function loadProviders() {
   renderAgents();
 }
 
-// ── workspace ──────────────────────────────────────────────────────
 async function loadFiles() {
   const list = $("fileList");
   try {
@@ -310,7 +345,6 @@ async function openInEditor(path) {
   } catch (e) { alert(e.message); }
 }
 
-// ── account ────────────────────────────────────────────────────────
 async function refreshOwner() {
   try {
     const data = await apiJson("/api/owner-status");
@@ -361,7 +395,6 @@ async function renderAccount() {
   }
 }
 
-// ── pipeline roles ─────────────────────────────────────────────────
 function renderPipelineRoles() {
   const elp = $("pipelineRoles");
   if (!elp) return;
@@ -380,7 +413,6 @@ function renderPipelineRoles() {
   });
 }
 
-// ── provider presets ───────────────────────────────────────────────
 const PRESETS = {
   omegatech: { kind: "http_get", base: "https://omegatech-api.dixonomega.tech/api/ai", path: "/Claude", msg: "text", env: "" },
   nvidia: { kind: "openai_compatible", base: "https://integrate.api.nvidia.com/v1", model: "z-ai/glm-5.2", env: "NVIDIA_API_KEY" },
@@ -406,7 +438,6 @@ function toggleKindFields() {
   $("kind_http").classList.toggle("show", kind === "http_get");
 }
 
-// ── wire events (rest of file continues below in same module) ─────
 function wire() {
   $("tabs").onclick = (e) => {
     const tab = e.target.closest(".tab");
@@ -442,6 +473,20 @@ function wire() {
     form.append("file", file);
     await api("/api/workspace/upload", { method: "POST", body: form });
     loadFiles();
+  };
+  if ($("fileUploadBtn")) $("fileUploadBtn").onclick = () => $("fileUploadInput").click();
+  if ($("fileUploadInput")) $("fileUploadInput").onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      await apiJson("/api/workspace/upload-file", { method: "POST", body: form });
+      loadFiles();
+    } catch (err) {
+      alert("upload failed: " + (err.message || err));
+    }
+    e.target.value = "";
   };
   $("exportBtn").onclick = async () => {
     const res = await api("/api/workspace/export");
