@@ -47,7 +47,7 @@ async def security_headers(request: Request, call_next):
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
-        "font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src *; frame-ancestors 'none'"
+        "font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src *; frame-ancestors 'none'"
     )
     return response
 
@@ -419,6 +419,18 @@ async def upload_zip(file: UploadFile = File(...), user: str = Depends(auth.get_
     except Exception as e:
         raise HTTPException(400, f"could not import zip: {e}") from e
     return {"extracted": extracted}
+
+
+@app.post("/api/workspace/upload-file")
+async def upload_file(file: UploadFile = File(...), user: str = Depends(auth.get_current_user)):
+    """Upload image, video, audio, or document into workspace/uploads/."""
+    content = await file.read()
+    try:
+        meta = workspace.save_upload(file.filename or "upload.bin", content, user_id=user)
+    except workspace.WorkspaceError as e:
+        raise HTTPException(400, str(e)) from e
+    return meta
+
 
 @app.get("/api/workspace/export")
 def export_zip(user: str = Depends(auth.get_current_user)):
